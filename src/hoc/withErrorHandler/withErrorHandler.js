@@ -1,49 +1,42 @@
-import React, { Component } from "react";
+import React from "react";
+import { useEffect } from "react";
+import { useState } from "react";
 
 import Modal from "../../components/UI/Modal/Modal";
 import Auxx from "../../hoc/Auxx/Auxx";
 
 const withErrorHandler = (WrappedComponent, axios) => {
-  return class extends Component {
-    state = {
-      error: null,
-    };
+  return function (props) {
+    const [state, setState] = useState({ error: null });
 
-    componentWillMount() {
-      this.reqInterceptor = axios.interceptors.request.use((req) => {
-        this.setState({ error: null });
+    useEffect(() => {
+      const reqInterceptor = axios.interceptors.request.use((req) => {
+        setState({ error: null });
         return req;
       });
-      this.resInterceptor = axios.interceptors.response.use(
+      const resInterceptor = axios.interceptors.response.use(
         (res) => res,
         (error) => {
-          this.setState({ error: error });
+          setState({ error: error });
         }
       );
-    }
 
-    errorConfirmedHandler = () => {
-      this.setState({ error: null });
+      axios.interceptors.request.eject(reqInterceptor);
+      axios.interceptors.response.eject(resInterceptor);
+    }, []);
+
+    const errorConfirmedHandler = () => {
+      setState({ error: null });
     };
 
-    componentWillUnmount() {
-      axios.interceptors.request.eject(this.reqInterceptor);
-      axios.interceptors.response.eject(this.resInterceptor);
-    }
-
-    render() {
-      return (
-        <Auxx>
-          <Modal
-            show={this.state.error}
-            modalClosed={this.errorConfirmedHandler}
-          >
-            {this.state.error ? this.state.error.message : null}
-          </Modal>
-          <WrappedComponent {...this.props} />
-        </Auxx>
-      );
-    }
+    return (
+      <Auxx>
+        <Modal show={state.error} modalClosed={errorConfirmedHandler}>
+          {state.error ? state.error.message : null}
+        </Modal>
+        <WrappedComponent {...props} />
+      </Auxx>
+    );
   };
 };
 
